@@ -35,16 +35,8 @@ trait TSource[ElemType] extends TNode {
   type NodeImpl[S] <: SourceImpl[S]
   type SourceImpl[S] <: TSourceImpl[S]
 
-  //  TODO think of how stuff should be read from outside the package
-  //  - I wonder if only TSystems should have ST-monadic methods, so as
-  //    to relieve the internals of burden.
   trait TSourceImpl[S] extends TNodeImpl[S] {
-
     private[tsynth] def value:ElemType
-
-    //private[tsynth] def operate:Unit // declared now in TNodeImpl
-    //def value:ST[S,ElemType]
-    //def operate:ST[S,Unit]
   }
 }
 
@@ -56,9 +48,6 @@ trait TSinkBase extends TNode {
   trait TSinkBaseImpl[S] {
 
     private[tsynth] def readSources:Unit
-
-    //def readSources:ST[S,Unit] // or just readSource assuming this is not a TMixer?
-    //def operate:ST[S,Unit] // should i care whether this comes from some common supertrait?
     // should i care whether, at this level, i should already have the source(s) themselves as members?
   }
 }
@@ -68,15 +57,10 @@ trait TSink[ElemType] extends TSinkBase {
   type SinkImpl[S] <: TSinkImpl[S]
 
   def source:TSource[ElemType]
-  //TODO think: can't i just categorically have a read-value variable where the source value gets put by
-  //  readSources?
   trait TSinkImpl[S] extends TSinkBaseImpl[S] {
-
     private[tsynth] def source:TSink.source.NodeImpl[S]
-    private[tsynth] var lastRead:ElemType // is protected what i want? might i want STRef instead? questions..
+    private[tsynth] var lastRead:ElemType
     private[tsynth] def readSources:Unit { lastRead = source.value }
-
-    //def readSources = source.value // erm, what? no?
   }
 }
 
@@ -115,3 +99,7 @@ trait TMixer2[In1, In2, Out] extends TFilterBase[Out] {
 }
 
 case class VarTuple2[T1,T2](var _1:T1, var _2:T2)
+
+
+
+
