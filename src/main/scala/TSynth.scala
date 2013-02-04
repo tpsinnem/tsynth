@@ -1,3 +1,5 @@
+package tsynth
+
 import scalaz._
 import scalaz.effect.ST
 import shapeless.{HList, UnaryTCConstraint}
@@ -19,30 +21,44 @@ trait TBasicSystem[Sources <: HList, Sinks <: HList] {
 
 trait TNode {
   
-  type TNodeImpl[S]
+  type NodeImpl[S] <: TNodeImpl[S]
 
-  def deploy[S]:ST[S, TNodeImpl[S]]
+  def deploy[S]:ST[S, NodeImpl[S]]
+
+  trait TNodeImpl[S] {
+    private[tsynth] def operate:Unit
+  }
 }
 
 trait TSource[ElemType] extends TNode {
 
-  type TNodeImpl[S] <: SourceImpl[S]
+  type NodeImpl[S] <: SourceImpl[S]
   type SourceImpl[S] <: TSourceImpl[S]
 
-  trait TSourceImpl[S] {
-    def value:ST[S,ElemType]
-    def operate:ST[S,Unit]
+  //  TODO think of how stuff should be read from outside the package
+  //  - I wonder if only TSystems should have ST-monadic methods, so as
+  //    to relieve the internals of burden.
+  trait TSourceImpl[S] extends TNodeImpl[S] {
+
+    private[tsynth] def value:ElemType
+
+    //private[tsynth] def operate:Unit // declared now in TNodeImpl
+    //def value:ST[S,ElemType]
+    //def operate:ST[S,Unit]
   }
 }
 
 trait TSinkBase extends TNode {
   
-  type TNodeImpl[S] <: SinkImpl[S]
+  type NodeImpl[S] <: SinkImpl[S]
   type SinkImpl[S] <: TSinkBaseImpl[S]
 
   trait TSinkBaseImpl[S] {
-    def readSources:ST[S,Unit] // or just readSource assuming this is not a TMixer?
-    def operate:ST[S,Unit] // should i care whether this comes from some common supertrait?
+
+    private[tsynth] def readSources:Unit
+
+    //def readSources:ST[S,Unit] // or just readSource assuming this is not a TMixer?
+    //def operate:ST[S,Unit] // should i care whether this comes from some common supertrait?
     // should i care whether, at this level, i should already have the source(s) themselves as members?
   }
 }
@@ -55,7 +71,10 @@ trait TSink[ElemType] extends TSinkBase {
   //TODO think: can't i just categorically have a read-value variable where the source value gets put by
   //  readSources?
   trait TSinkImpl[S] extends TSinkBaseImpl[S] {
-    def source:ST[S, TSink.source.TNodeImpl[S]]
+
+    private[tsynth] def source:TSink.source.NodeImpl[S]
+    private[tsynth] var lastRead:ElemType // is protected what i want? might i want STRef instead? questions..
+    private[tsynth] def readSources:Unit { lastRead = source.value }
 
     //def readSources = source.value // erm, what? no?
   }
@@ -63,7 +82,7 @@ trait TSink[ElemType] extends TSinkBase {
 
 trait TFilterBase[Out] extends TSource[Out] with TSinkBase {
 
-  type TNodeImpl[S] <: SourceImpl[S] with SinkImpl[S]
+  type NodeImpl[S] <: SourceImpl[S] with SinkImpl[S]
   type SourceImpl[S] <: TFilterBaseImpl[S]
   type SinkImpl[S] <: TFilterBaseImpl[S]
 
@@ -84,13 +103,15 @@ trait TMixer2[In1, In2, Out] extends TFilterBase[Out] {
   type SinkImpl[S] <: TMixer2Impl[S]
 
   def sources:(TSource[In1], TSource[In2])
-  //def combine:(In1, In2) => Out // would of course only help with pairs of single samples.
 
   trait TMixer2Impl[S] extends TFilterBaseImpl[S] {
-    def sources:ST[S, (sources._1.TNodeImpl[S], sources._2.TNodeImpl[S])]
-    def combine:ST[S, Out]
+    private[tsynth] def sources:(sources._1.NodeImpl[S], sources._2.NodeImpl[S])
+    private[tsynth] val lastRead:VarTuple2[In,Out]
+    private[tsynth] def readSources:Unit {
+      lastRead._1 = sources._1.value
+      lastRead._2 = sources._2.value
+    }
   }
 }
 
-// First attempt!
-//case class STToyDelayLine[S](buffer:STArray[S,Float], i:Int) { 
+case class VarTuple2[T1,T2](var _1:T1, var _2:T2)
