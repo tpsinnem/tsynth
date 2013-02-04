@@ -32,7 +32,7 @@ trait TNode {
 
 trait TSource[ElemType] extends TNode {
 
-  type NodeImpl[S] <: SourceImpl[S]
+  type NodeImpl[S] <: SourceImpl[S] //TODO  there has to be some confusion behind this?
   type SourceImpl[S] <: TSourceImpl[S]
 
   trait TSourceImpl[S] extends TNodeImpl[S] {
@@ -42,7 +42,7 @@ trait TSource[ElemType] extends TNode {
 
 trait TSinkBase extends TNode {
   
-  type NodeImpl[S] <: SinkImpl[S]
+  type NodeImpl[S] <: SinkImpl[S] //TODO  see above?
   type SinkImpl[S] <: TSinkBaseImpl[S]
 
   trait TSinkBaseImpl[S] {
@@ -67,7 +67,7 @@ trait TSink[ElemType] extends TSinkBase {
 trait TFilterBase[Out] extends TSource[Out] with TSinkBase {
 
   type NodeImpl[S] <: SourceImpl[S] with SinkImpl[S]
-  type SourceImpl[S] <: TFilterBaseImpl[S]
+  type SourceImpl[S] <: TFilterBaseImpl[S]  //TODO  see above again. confusion.
   type SinkImpl[S] <: TFilterBaseImpl[S]
 
   trait TFilterBaseImpl[S] extends TSourceImpl[S] with TSinkBaseImpl[S]
@@ -75,7 +75,7 @@ trait TFilterBase[Out] extends TSource[Out] with TSinkBase {
 
 trait TFilter[In, Out] extends TSink[In] with TFilberBase[Out] {
 
-  type SourceImpl[S] <: TFilterImpl[S]
+  type SourceImpl[S] <: TFilterImpl[S]  //TODO  and again
   type SinkImpl[S] <: TFilterImpl[S]
 
   trait TFilterImpl[S] extends TSinkImpl[S] with TFilterBaseImpl[S]
@@ -83,7 +83,7 @@ trait TFilter[In, Out] extends TSink[In] with TFilberBase[Out] {
 
 trait TMixer2[In1, In2, Out] extends TFilterBase[Out] {
 
-  type SourceImpl[S] <: TMixer2Impl[S]
+  type SourceImpl[S] <: TMixer2Impl[S]  //TODO  and again
   type SinkImpl[S] <: TMixer2Impl[S]
 
   def sources:(TSource[In1], TSource[In2])
