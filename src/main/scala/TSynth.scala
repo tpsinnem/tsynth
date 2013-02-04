@@ -101,5 +101,15 @@ trait TMixer2[In1, In2, Out] extends TFilterBase[Out] {
 case class VarTuple2[T1,T2](var _1:T1, var _2:T2)
 
 
+//trait or abstract class or such?
+trait CircularArrayFilter[ElemType] extends TFilter[ElemType, ElemType] {
+  //TODO  everything 
+}
+
+
+
+
+
+
 
 
