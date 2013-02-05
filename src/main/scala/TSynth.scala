@@ -111,6 +111,7 @@ case class VarTuple2[T1,T2](var _1:T1, var _2:T2)
 //      i need a separate 'value:ElemType' member that operate writes to. actually probably separate In and Out
 //      types. i might ultimately want a completely different [backend] for delay lines, but that might do
 //      at least for now, and possibly forever.
+//      - actually looks like i'd even want an additional 'internal' type.
 trait CircularArrayFilter[ElemType] extends TFilter[ElemType, ElemType] {
 
   type NodeImpl[S] <: CircularArrayFilterImpl[S]
