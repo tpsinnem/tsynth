@@ -107,12 +107,17 @@ case class VarTuple2[T1,T2](var _1:T1, var _2:T2)
 
 //trait or abstract class or such?
 //TODO keep remembering that this is an initial implementation and will need to be rethought!
+//TODO this is actually not exactly what i want. in order to treat filter state separate from output values,
+//      i need a separate 'value:ElemType' member that operate writes to. actually probably separate In and Out
+//      types. i might ultimately want a completely different [backend] for delay lines, but that might do
+//      at least for now, and possibly forever.
 trait CircularArrayFilter[ElemType] extends TFilter[ElemType, ElemType] {
 
   type NodeImpl[S] <: CircularArrayFilterImpl[S]
 
   val length:Int //TODO think: does this even belong here. shouldn't i instead have a [Seq[?]] member?
                   //    - a seq or somesuch member with a length i can refer to.
+  //TODO think, read: i might like some restriction on Array here to prevent user mutation of the array
   val headUpdate: (ElemType, Array[ElemType], Int, Int) => ElemType
   //TODO !!! think of how to facilitate [[variable lengths]] with 'extra length trick'
 
@@ -127,6 +132,9 @@ trait CircularArrayFilter[ElemType] extends TFilter[ElemType, ElemType] {
     //    - Let it happen. It has more info anyway, so I can have things both ways, adding fixes of top if need
 
     private[tsynth] def operate {
+      //TODO should i replace arr(head) here with value? if so, what do i update head with? do i need
+      //    to split headUpdate into two separate functions with some different roles?, or just
+      //    have another function in addition to the headUpdate as it exists already?
       arr(head) = headUpdate(lastRead, arr, head, tail)
       head = (head + 1) % length
       tail = (tail + 1) % length
