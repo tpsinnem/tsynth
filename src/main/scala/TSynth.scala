@@ -30,6 +30,13 @@ trait TNode {
   
   type NodeImpl[S] <: TNodeImpl[S]
 
+  //TODO think: what exactly should 'deploy' do? is the return type here what i want?
+  //      - should deploy in fact be different depending on whether and how many sources a Node has?
+  //        - this is connected to the question of whether sources' identities are the only information
+  //          that should still need to be filled in at the time of deployment?
+  //      - should i even have a deploy method at the node level?
+  //      - one thing i know i do need is something that insantiates the Impls. should deploy be it or
+  //        have i had some different concepts in mind here. i am confuse D:
   def deploy[S]:ST[S, NodeImpl[S]]
 
   //TODO !!!! need to figure out how to responsibly [get data out of these]
@@ -157,6 +164,22 @@ class TCrudeKarplusStrongDelayLine extends TSource[Float] {
   type NodeImpl[S] = TCrudeKarplusStrongDelayLineImpl[S]
   val delayLine = new DelayLineBuffer
   val lowPass = new CrudeLowPassFilter
+
+  val source = delayLine
+
+  class CrudeLowPassFilter extends TFilter[Float, Float] {
+    type NodeImpl[S] = CrudeLowPassFilterImpl[S]
+    //TODO think: how do i get sources connected? just source = delayLine?
+    trait CrudeLowPassFilterImpl[S] extends TFilterImpl[S] {
+      private[tsynth] val source = // delayLine //TODO umm, no?
+      private[tsynth] var lastRead:Float = 0.0
+      private[tsynth] var value:Float = 0.0
+      private[tsynth] var prevRead:Float = 0.0
+      private[tsynth] def operate:Unit {
+        value = (lastRead + prevRead) / 2.05 // numero ex recto
+        prevRead = lastRead
+      }
+  /*
   class CrudeLowPassFilter extends TCircularArrayFilter[Float, Float, Float] {
     type NodeImpl[S] = CrudeLowPassFilterImpl[S]
 
@@ -168,6 +191,7 @@ class TCrudeKarplusStrongDelayLine extends TSource[Float] {
     }
     //TODO finish
   }
+  */
   class DelayLineBuffer extends TCircularArrayFilter[Float, Float, Float] {
     type NodeImpl[S] = DelayLineBufferImpl[S]
 
