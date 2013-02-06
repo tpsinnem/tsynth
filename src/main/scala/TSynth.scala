@@ -37,11 +37,29 @@ trait TNode {
   //      - should i even have a deploy method at the node level?
   //      - one thing i know i do need is something that insantiates the Impls. should deploy be it or
   //        have i had some different concepts in mind here. i am confuse D:
-  def deploy[S]:ST[S, NodeImpl[S]]
+  //  - one thing that has been throwing me off is how it has seemed that you can't deploy a sink without
+  //    getting the source implementation as an argument. this seems weird since you'd think there's some way
+  //    to make use of the existing information about the [source-representative] for that purpose.
+  //    - i think i might have an answer, though. deploy should _take a TSystem_ as an argument, and then get
+  //      a source implementation from that system as a function of the known source-representative.
+  //  - about the return type: i want to nakedly call stuff in the deployed implementations, do i not?
+  //    was it not the case that having this be ST-monadic at this level gets in the way of that?
+  //    - so if i want deploy to not be st-monadic, what would be another method that _would_ be st-monadic?
+  //      - would that be something that wouldn't exist at the node-level? or maybe at the node-level i could
+  //        have something that elevates the node to a system and returns that st-monadically? provided that
+  //        the node in question is suitable for that sort of thing. (might they all be, despite my worries?)
+  //    - if i'll have it not be st-monadic, should it not also be private[tsynth] ?
+
+  //TODO think: TBasicSystem or something else? do i need laziness somehow? system needs deployed nodeimpls
+  //              which need system.
+  //  - i'm making this by-name for now but i want to know what's right.
+  private[tsynth] def deploy[S](system: => TBasicSystem[S]):NodeImpl[S]
+  //def deploy[S]:ST[S, NodeImpl[S]]
 
   //TODO !!!! need to figure out how to responsibly [get data out of these]
   //      - so far, all the methods in these are non-ST-monadic! -- and, thankfully, private.
   trait TNodeImpl[S] {
+    private[tsynth] def system:TBasicSystem[S] // i do think i'd need to name this TSystem or something
     private[tsynth] def operate:Unit
   }
 }
