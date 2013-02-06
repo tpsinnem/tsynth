@@ -14,7 +14,7 @@ import shapeless.{HList, UnaryTCConstraint}
 
 // TODO also have a system with free sinks. Possibly also explicit free sources. Use shapeless.HList?
 // - hm seems like i'll need HList anyhow just for basic functionality
-trait TBasicSystem[Sources <: HList, Sinks <: HList] {
+trait TSystem[Sources <: HList, Sinks <: HList] {
 
   val sourceConstraint:UnaryTCConstraint[Sources, TSource]
   val sinkConstraint:UnaryTCConstraint[Sinks, TSink]
@@ -50,16 +50,16 @@ trait TNode {
   //        the node in question is suitable for that sort of thing. (might they all be, despite my worries?)
   //    - if i'll have it not be st-monadic, should it not also be private[tsynth] ?
 
-  //TODO think: TBasicSystem or something else? do i need laziness somehow? system needs deployed nodeimpls
+  //TODO think: TSystem or something else? do i need laziness somehow? system needs deployed nodeimpls
   //              which need system.
   //  - i'm making this by-name for now but i want to know what's right.
-  private[tsynth] def deploy[S](system: => TBasicSystem[S]):NodeImpl[S]
+  private[tsynth] def deploy[S](system: => TSystem[S]):NodeImpl[S]
   //def deploy[S]:ST[S, NodeImpl[S]]
 
   //TODO !!!! need to figure out how to responsibly [get data out of these]
   //      - so far, all the methods in these are non-ST-monadic! -- and, thankfully, private.
   trait TNodeImpl[S] {
-    private[tsynth] def system:TBasicSystem[S] // i do think i'd need to name this TSystem or something
+    private[tsynth] def system:TSystem[S] // i do think i'd need to name this TSystem or something
     private[tsynth] def operate:Unit
   }
 }
