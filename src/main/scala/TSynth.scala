@@ -71,7 +71,18 @@ trait TNode {
   //      need something like the TSystem subtype as a type parameter and then project on that. That, in turn,
   //      will, I think, require parameterizing on the HList types on the TSystem, and then taking their
   //      constraints as implicits.
-  private[tsynth] def deploy[S](system0: => TSystemImpl[S]):NodeImpl[S]
+  //      - Might it be the case that I don't need the constraints as parameters here, on account of them
+  //        already existing as members of TSystem? I should be so lucky.
+  //        - In fact I suppose I will need them. Sources and Sinks here are my parameters, and I don't
+  //          think they can just borrow their properties from whatever TSystem they're slapped on..
+  private[tsynth] def deploy[
+    S,
+    Sys <: TSystem[Sources, Sinks]
+    Sources <: HList,
+    Sinks <: HList]
+    (system0: => Sys#TSystemImpl[S]) // is the system0 name necessary at this point?
+    (implicit soc:UnaryTCConstraint[Sources, TSource],
+              sic:UnaryTCConstraint[Sinks, TSink]     ):NodeImpl[S]
   //def deploy[S]:ST[S, NodeImpl[S]]
 
   //TODO !!!! need to figure out how to responsibly [get data out of these]
@@ -149,7 +160,7 @@ case class VarTuple2[T1,T2](var _1:T1, var _2:T2)
 
 //trait or abstract class or such?
 //TODO keep remembering that this is an initial implementation and will need to be rethought!
-//TODO this is actually not exactly what i want. in order to treat filter state separate from output values,
+//T0D0 this is actually not exactly what i want. in order to treat filter state separate from output values,
 //      i need a separate 'value:ElemType' member that operate writes to. actually probably separate In and Out
 //      types. i might ultimately want a completely different [backend] for delay lines, but that might do
 //      at least for now, and possibly forever.
