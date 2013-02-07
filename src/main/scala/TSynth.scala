@@ -14,13 +14,25 @@ import shapeless.{HList, UnaryTCConstraint}
 
 // TODO also have a system with free sinks. Possibly also explicit free sources. Use shapeless.HList?
 // - hm seems like i'll need HList anyhow just for basic functionality
+//TODO I think I should actually forgo this HList stuff for now -- also remove shapeless import if so -- RLY?
+//  - srsly, there really might actually be a good reason for having that here
+//    - btw what was the problem again?
+//      - the problem was deployment and how a TSystem of this type might be laborious to pass to the node
+//        representatives' deploy methods. but is it, really?
 trait TSystem[Sources <: HList, Sinks <: HList] {
+
+  type SystemImpl[S] <: TSystemImpl[S]
 
   val sourceConstraint:UnaryTCConstraint[Sources, TSource]
   val sinkConstraint:UnaryTCConstraint[Sinks, TSink]
 
   def sources:Sources
   def sinks:Sinks
+
+  //TODO think: i need to refer to this type in the various nodes, do i not? how? current way won't work.
+  trait TSystemImpl[S] {
+    //TODO everything. deployed sources and such.
+  }
 
   //TODO deployment and a bunch of other stuff and thinking probably
   //should probably have a companion that constructs these, with checks that all sinks have source in sources
@@ -53,13 +65,19 @@ trait TNode {
   //TODO think: TSystem or something else? do i need laziness somehow? system needs deployed nodeimpls
   //              which need system.
   //  - i'm making this by-name for now but i want to know what's right.
-  private[tsynth] def deploy[S](system: => TSystem[S]):NodeImpl[S]
+  // TSystem does not have such a parameter. I need a TSystemImpl[S] I suppose, which not exists yet.
+  //TODO think: the signature for this one might inescapeably turn out to be tricky. I don't think I can
+  //      just refer to 'TSystemImpl[S]' here, since it depends on the specific TSystem. So I figure I'd
+  //      need something like the TSystem subtype as a type parameter and then project on that. That, in turn,
+  //      will, I think, require parameterizing on the HList types on the TSystem, and then taking their
+  //      constraints as implicits.
+  private[tsynth] def deploy[S](system0: => TSystemImpl[S]):NodeImpl[S]
   //def deploy[S]:ST[S, NodeImpl[S]]
 
   //TODO !!!! need to figure out how to responsibly [get data out of these]
   //      - so far, all the methods in these are non-ST-monadic! -- and, thankfully, private.
   trait TNodeImpl[S] {
-    private[tsynth] def system:TSystem[S] // i do think i'd need to name this TSystem or something
+    private[tsynth] lazy val system:TSystemImpl[S]
     private[tsynth] def operate:Unit
   }
 }
@@ -91,7 +109,7 @@ trait TSink[ElemType] extends TSinkBase {
   def source:TSource[ElemType]
 
   trait TSinkImpl[S] extends TSinkBaseImpl[S] {
-    private[tsynth] def source:TSink.source.NodeImpl[S]
+    private[tsynth] lazy val source:TSink.source.NodeImpl[S] = system.deployedSource(TSink.source) //TODO implement!
     private[tsynth] var lastRead:ElemType
     private[tsynth] def readSources:Unit { lastRead = source.value }
   }
